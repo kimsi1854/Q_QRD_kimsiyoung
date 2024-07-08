@@ -14,7 +14,6 @@ class QLearningPlayer:
         self.init_q_table()
 
     def init_q_table(self):
-        # 상태와 행동의 조합으로 Q-table 초기화
         for r in range(self.board.rows):
             for c in range(self.board.cols):
                 for action in range(1, 17):  # 1~16까지의 행동
