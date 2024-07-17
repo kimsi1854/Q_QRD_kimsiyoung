@@ -4,21 +4,20 @@ from time import sleep
 from board import Board
 from Q import QLearningPlayer
 
-# 학습 설정
 training_games = 30
 test_games = 10
 
-# 학습 단계
+# 학습
 board = Board()
-ql_player1 = QLearningPlayer(board, "Q1", alpha=0.1)  # 학습률을 0.1로 설정
-ql_player2 = QLearningPlayer(board, "Q2", alpha=0.05)  # 학습률을 0.05로 설정
+ql_player1 = QLearningPlayer(board, "Q1", alpha=0.1)  
+ql_player2 = QLearningPlayer(board, "Q2", alpha=0.05)  
 players = [ql_player1, ql_player2]
 
 board.quoridors(training_games, players, print_board=False)
 ql_player1.save_q_table("q_table_q1.pkl")
 ql_player2.save_q_table("q_table_q2.pkl")
 
-# 테스트 단계
+# 테스트
 board = Board()
 test_ql_player1 = QLearningPlayer(board, "Q1", alpha=0.1)
 test_ql_player2 = QLearningPlayer(board, "Q2", alpha=0.05)
