@@ -1,6 +1,6 @@
 import numpy as np
 import random
-import pickle
+from board import Board
 
 class QLearningPlayer:
     def __init__(self, board, name='', alpha=0.1, gamma=0.9, epsilon=0.1):
@@ -42,19 +42,17 @@ class QLearningPlayer:
         valid_move = self.board.move_player(action, self.pawn)
         reward = 0
         if valid_move:
-            reward += 0.1  # 유효 이동
+            reward += 0.1  # 유효한 이동
             if self.board.is_opponent_blocked(self.pawn):
-                reward += 0.5  # 상대방 방해하는 벽 설치
+                reward += 1  # 상대방을 방해하는 벽 설치
             if self.board.is_finish():
-                reward += 1  # 게임 승리
+                reward += 0.5  # 게임 승리
             next_state = (self.board.pawn[self.pawn - 1][0], self.board.pawn[self.pawn - 1][1])
             if not test:
                 self.update_q_table(state, action, reward, next_state)
 
-    def save_q_table(self, filename):
-        with open(filename, 'wb') as f:
-            pickle.dump(self.q_table, f)
+    def export_q_table(self):
+        return self.q_table
 
-    def load_q_table(self, filename):
-        with open(filename, 'rb') as f:
-            self.q_table = pickle.load(f)
+    def import_q_table(self, q_table):
+        self.q_table = q_table
