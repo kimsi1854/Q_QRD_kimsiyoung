@@ -535,7 +535,7 @@ class Board:
                 else: maze_s = maze_s + '   '
             maze_s = maze_s + '\n'
         print(maze_s)
-
+##################
     def is_opponent_blocked(self, pawn):
         opponent_pawn = 1 if pawn == 2 else 2
         original_position = self.pawn[opponent_pawn - 1].copy()
@@ -589,53 +589,3 @@ class Board:
             self.pawn[pawn - 1][0] += 1
             self.pawn[pawn - 1][1] += 1
 
-    def put_wall(self, r, c, direction, pawn):
-        if self.num_walls[pawn - 1] <= 0:
-            print("{} has no walls.".format(self.players[pawn-1].name))
-            return False
-        if self.is_wall_valid(r, c, direction):
-            self.num_walls[pawn-1] -= 1
-            if direction == 1:
-                self.hwalls[r, c:c + 2] = 1
-                self.points[r, c] = 1
-            if direction == 2:
-                self.vwalls[r:r + 2, c] = 1
-                self.points[r, c] = 1
-            return True
-        else:
-            print("Invalid wall.")
-            return False
-
-    def is_wall_valid(self, r, c, direction):
-        if r < 0 or r >= self.rows-1: return False
-        if c < 0 or c >= self.cols-1: return False
-        if self.points[r, c] == 1: return False
-        if direction == 1:
-            if self.hwalls[r, c] == 1 or self.hwalls[r, c+1] == 1: return False
-        if direction == 2:
-            if self.vwalls[r, c] == 1 or self.vwalls[r+1, c] == 1: return False
-        if self.is_path_closed(r, c, direction): return False
-        return True
-
-    def is_path_closed(self, r, c, direction):
-        player1_closed = True
-        player2_closed = True
-        before_maze = self.maze.copy()
-        if direction == 1: self.maze[r*2+2, c*2+1:c*2+4] = 1
-        if direction == 2: self.maze[r*2+1:r*2+4, c*2+2] = 1
-
-        for i in range(self.cols):
-            start = (self.pawn[0][0]*2+1, self.pawn[0][1]*2+1)
-            end = ((self.rows-1)*2+1, i*2+1)
-            if BFS(self.maze, start, end) > 0:
-                player1_closed = False
-                break
-
-        for i in range(self.cols):
-            start = (self.pawn[1][0]*2+1, self.pawn[1][1]*2+1)
-            end = (1, i*2+1)
-            if BFS(self.maze, start, end) > 0:
-                player2_closed = False
-                break
-        if player1_closed or player2_closed: self.maze = before_maze
-        return player1_closed or player2_closed
