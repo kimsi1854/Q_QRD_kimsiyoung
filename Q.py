@@ -42,11 +42,11 @@ class QLearningPlayer:
         valid_move = self.board.move_player(action, self.pawn)
         reward = 0
         if valid_move:
-            reward += 0.1  # 유효한 이동에 대한 보상
+            reward += 0.1  # 유효 이동
             if self.board.is_opponent_blocked(self.pawn):
-                reward += 0.5  # 상대방을 방해하는 벽 설치에 대한 보상
+                reward += 0.5  # 상대방 방해하는 벽 설치
             if self.board.is_finish():
-                reward += 1  # 게임 승리에 대한 보상
+                reward += 1  # 게임 승리
             next_state = (self.board.pawn[self.pawn - 1][0], self.board.pawn[self.pawn - 1][1])
             if not test:
                 self.update_q_table(state, action, reward, next_state)
