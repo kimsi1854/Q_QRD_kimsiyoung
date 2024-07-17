@@ -9,20 +9,22 @@ test_games = 10
 
 # 학습
 board = Board()
-ql_player1 = QLearningPlayer(board, "Q1", alpha=0.1)  
-ql_player2 = QLearningPlayer(board, "Q2", alpha=0.05)  
+ql_player1 = QLearningPlayer(board, "Q1", alpha=0.1)
+ql_player2 = QLearningPlayer(board, "Q2", alpha=0.05)
 players = [ql_player1, ql_player2]
 
 board.quoridors(training_games, players, print_board=False)
-ql_player1.save_q_table("q_table_q1.pkl")
-ql_player2.save_q_table("q_table_q2.pkl")
+
+q_table_q1 = ql_player1.export_q_table()
+q_table_q2 = ql_player2.export_q_table()
 
 # 테스트
 board = Board()
 test_ql_player1 = QLearningPlayer(board, "Q1", alpha=0.1)
 test_ql_player2 = QLearningPlayer(board, "Q2", alpha=0.05)
-test_ql_player1.load_q_table("q_table_q1.pkl")
-test_ql_player2.load_q_table("q_table_q2.pkl")
+
+test_ql_player1.import_q_table(q_table_q1)
+test_ql_player2.import_q_table(q_table_q2)
 players = [test_ql_player1, test_ql_player2]
 
 board.quoridors(test_games, players, print_board=True)
