@@ -3,6 +3,8 @@ name: Temporary EOT probe main
 on:
   push:
     branches: [main]
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
