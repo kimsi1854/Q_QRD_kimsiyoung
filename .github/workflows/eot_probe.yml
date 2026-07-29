@@ -1,0 +1,86 @@
+name: EOT image probe
+
+on:
+  push:
+    branches:
+      - chatgpt-eot-download-20260729
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Probe sample images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cat > out/probe.py <<'PY'
+          import concurrent.futures
+          import json
+          import statistics
+          import struct
+          import time
+          from urllib.request import Request, urlopen
+
+          URLS = [
+              "https://image.e-ot.io/item/90/20200317184028_61772a7e-9f47-42e9-867f-b86dc9a20b81.png",
+              "https://image.e-ot.io/item/91/20200317184029_c10913a0-dc03-4b9d-85df-36f58299b813.png",
+              "https://image.e-ot.io/item/100/20200317184041_65b3bb0b-5982-48ae-958c-78ea3a97750e.png",
+              "https://image.e-ot.io/item/352154/20211122122923_8d274df4-f3c1-404c-b961-906cf5326ba0.png",
+              "https://image.e-ot.io/item/419428/20220614171929_a9347d5b-2108-42bf-ae8b-f93c9855c22b.png",
+              "https://image.e-ot.io/item/473966/20221006155356_17898bd8-10f6-4706-8872-7cc2e1d7afad.png",
+              "https://image.e-ot.io/item/618016/20240115171309_BwGpMjiou6bo58NuRqPIYlKjyARA7hkWHXOxyzWL.png",
+              "https://image.e-ot.io/item/618018/20240115171703_aSHBeBVODoN0mRiYvHUPP20XMKhnL39QjTpHboYK.png",
+          ]
+
+          def one(url):
+              started = time.time()
+              try:
+                  req = Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "image/*,*/*;q=0.8"})
+                  with urlopen(req, timeout=60) as response:
+                      body = response.read()
+                      headers = dict(response.headers.items())
+                      dims = None
+                      if body.startswith(b"\x89PNG\r\n\x1a\n") and len(body) >= 24:
+                          dims = struct.unpack(">II", body[16:24])
+                      return {
+                          "url": url,
+                          "status": response.status,
+                          "bytes": len(body),
+                          "type": headers.get("Content-Type"),
+                          "dimensions": dims,
+                          "elapsed_s": round(time.time() - started, 3),
+                      }
+              except Exception as exc:
+                  return {"url": url, "error": repr(exc), "elapsed_s": round(time.time() - started, 3)}
+
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+              rows = list(executor.map(one, URLS))
+
+          for row in rows:
+              print(json.dumps(row, ensure_ascii=False))
+
+          sizes = [r["bytes"] for r in rows if r.get("status") == 200]
+          if sizes:
+              n = 371177
+              summary = {
+                  "successful_samples": len(sizes),
+                  "mean_bytes": round(statistics.mean(sizes), 2),
+                  "median_bytes": round(statistics.median(sizes), 2),
+                  "estimated_total_mean_GiB": round(statistics.mean(sizes) * n / 1024**3, 3),
+                  "estimated_total_median_GiB": round(statistics.median(sizes) * n / 1024**3, 3),
+              }
+              print(json.dumps(summary, ensure_ascii=False))
+          PY
+          python out/probe.py | tee out/probe_report.txt
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eot-probe-report
+          path: out/probe_report.txt
+          retention-days: 1
