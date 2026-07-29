@@ -1,0 +1,64 @@
+name: Temporary EOT probe main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Probe image server
+        shell: bash
+        run: |
+          python3 - <<'PY' | tee probe_report.txt
+          import concurrent.futures, json, statistics, struct, time
+          from urllib.request import Request, urlopen
+          URLS = [
+            "https://image.e-ot.io/item/90/20200317184028_61772a7e-9f47-42e9-867f-b86dc9a20b81.png",
+            "https://image.e-ot.io/item/151388/20200724135942_de077fb4-fc7e-481e-95a9-d2c85ee89c3d.png",
+            "https://image.e-ot.io/item/189657/20210226145503_59580668-9662-4316-93e3-bd4b0869e5ef.png",
+            "https://image.e-ot.io/item/242107/20210529143549_f6c77a90-cb9d-4d14-94d7-e22bf3b18721.png",
+            "https://image.e-ot.io/item/261657/20210530193357_a9d83a8d-fa47-4090-8c3c-f42a16689921.png",
+            "https://image.e-ot.io/item/285411/20210617182503_71c97466-6c03-4c44-859c-1d10a8a306d0.png",
+            "https://image.e-ot.io/item/339646/20211018115427_e97e6fd9-3fd8-44b1-b52f-8f4300fadebb.png",
+            "https://image.e-ot.io/item/363278/20211124144324_0b085819-87aa-4e5e-940b-7a749f9e6a6d.png",
+            "https://image.e-ot.io/item/385571/20220216175352_da9f3576-83b8-4635-b85b-71273ef59816.png",
+            "https://image.e-ot.io/item/405559/20220224143938_233ac474-2a23-4012-b1fa-c0dcfadf2c78.png",
+            "https://image.e-ot.io/item/429935/20220615130550_f2b6a75a-9d91-4879-9ca6-a41bd3395a6b.png",
+            "https://image.e-ot.io/item/454922/20221004195635_2e5ab2fb-8c09-46b5-bc41-532cd065cc9e.png",
+            "https://image.e-ot.io/item/474968/20221006161636_067ed698-8720-465e-a4f2-bdf376057243.png",
+            "https://image.e-ot.io/item/494875/20221007124440_17d0ec50-ff7d-4c4c-9ce7-4ff35c306005.png",
+            "https://image.e-ot.io/item/514578/20221116102211_c96678eb-5957-458e-963d-5ad54ce3aef5.png",
+            "https://image.e-ot.io/item/534114/20221117170008_bf4a49b3-5d78-457f-997c-d629b76e454c.png",
+            "https://image.e-ot.io/item/553651/20221118184444_8a3c7b52-f250-4d79-a78a-41ad4ad0dd03.png",
+            "https://image.e-ot.io/item/573280/20230125143357_d881855d-9e2e-4cb5-83b0-5b733343f468.png",
+            "https://image.e-ot.io/item/593158/20230511102431_f8a07a44-4ecc-4bfa-9642-9caaf5ac3305.png",
+            "https://image.e-ot.io/item/618018/20240115171703_aSHBeBVODoN0mRiYvHUPP20XMKhnL39QjTpHboYK.png",
+          ]
+          def one(url):
+              t=time.time()
+              try:
+                  req=Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"image/*,*/*;q=0.8"})
+                  with urlopen(req,timeout=60) as r:
+                      b=r.read(); dims=None
+                      if b.startswith(b"\x89PNG\r\n\x1a\n") and len(b)>=24: dims=struct.unpack(">II",b[16:24])
+                      return {"url":url,"status":r.status,"bytes":len(b),"type":r.headers.get("Content-Type"),"dimensions":dims,"elapsed_s":round(time.time()-t,3)}
+              except Exception as e:
+                  return {"url":url,"error":repr(e),"elapsed_s":round(time.time()-t,3)}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex: rows=list(ex.map(one,URLS))
+          for x in rows: print(json.dumps(x,ensure_ascii=False))
+          sizes=[x["bytes"] for x in rows if x.get("status")==200]
+          if sizes:
+              n=371177
+              print(json.dumps({"successful":len(sizes),"mean_bytes":round(statistics.mean(sizes),2),"median_bytes":round(statistics.median(sizes),2),"min_bytes":min(sizes),"max_bytes":max(sizes),"estimated_mean_GiB":round(statistics.mean(sizes)*n/1024**3,3),"estimated_median_GiB":round(statistics.median(sizes)*n/1024**3,3)},ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eot-probe-report
+          path: probe_report.txt
+          retention-days: 1
